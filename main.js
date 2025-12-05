@@ -16,6 +16,7 @@ function menu() {
 4. Delete Record
 5. Exit
 6. Search Records
+7. Sort Records
 =====================
 `);
 
@@ -82,6 +83,37 @@ function menu() {
                         );
                     }
                     menu();
+                });
+                break;
+
+            case '7': // Sort Records
+                rl.question('Choose field to sort by (name/createdAt): ', field => {
+                    field = field.trim().toLowerCase();
+                    rl.question('Choose order (asc/desc): ', order => {
+                        order = order.trim().toLowerCase();
+
+                        let recordsToSort = [...db.listRecords()]; // copy to avoid modifying DB
+                        if (field === 'name') {
+                            recordsToSort.sort((a, b) => {
+                                if (a.name.toLowerCase() < b.name.toLowerCase()) return order === 'asc' ? -1 : 1;
+                                if (a.name.toLowerCase() > b.name.toLowerCase()) return order === 'asc' ? 1 : -1;
+                                return 0;
+                            });
+                        } else if (field === 'createdat') {
+                            recordsToSort.sort((a, b) => {
+                                const dateA = new Date(a.createdAt);
+                                const dateB = new Date(b.createdAt);
+                                return order === 'asc' ? dateA - dateB : dateB - dateA;
+                            });
+                        } else {
+                            console.log('Invalid field. Sorting aborted.');
+                            return menu();
+                        }
+
+                        console.log('Sorted Records:');
+                        recordsToSort.forEach(r => console.log(`ID: ${r.id} | Name: ${r.name} | Value: ${r.value}`));
+                        menu();
+                    });
                 });
                 break;
 

@@ -1,5 +1,6 @@
 const readline = require('readline');
 const db = require('./db');
+const exportUtils = require('./utils/export');
 require('./events/logger'); // Initialize event logger
 
 const rl = readline.createInterface({
@@ -14,14 +15,16 @@ function menu() {
 2. List Records
 3. Update Record
 4. Delete Record
-5. Exit
-6. Search Records
-7. Sort Records
+5. Search Records
+6. Sort Records
+7. Export Data
+8. Exit
 =====================
 `);
 
     rl.question('Choose option: ', ans => {
         switch (ans.trim()) {
+
             case '1': // Add Record
                 rl.question('Enter name: ', name => {
                     rl.question('Enter value: ', value => {
@@ -37,7 +40,9 @@ function menu() {
                 if (records.length === 0) {
                     console.log('No records found.');
                 } else {
-                    records.forEach(r => console.log(`ID: ${r.id} | Name: ${r.name} | Value: ${r.value}`));
+                    records.forEach(r =>
+                        console.log(`ID: ${r.id} | Name: ${r.name} | Value: ${r.value} | CreatedAt: ${r.createdAt}`)
+                    );
                 }
                 menu();
                 break;
@@ -62,12 +67,7 @@ function menu() {
                 });
                 break;
 
-            case '5': // Exit
-                console.log('👋 Exiting NodeVault...');
-                rl.close();
-                break;
-
-            case '6': // Search Records
+            case '5': // Search Records
                 rl.question('Enter search keyword: ', keyword => {
                     const results = db.listRecords().filter(record =>
                         record.name.toLowerCase().includes(keyword.toLowerCase()) ||
@@ -86,13 +86,14 @@ function menu() {
                 });
                 break;
 
-            case '7': // Sort Records
+            case '6': // Sort Records
                 rl.question('Choose field to sort by (name/createdAt): ', field => {
                     field = field.trim().toLowerCase();
                     rl.question('Choose order (asc/desc): ', order => {
                         order = order.trim().toLowerCase();
 
-                        let recordsToSort = [...db.listRecords()]; // copy to avoid modifying DB
+                        let recordsToSort = [...db.listRecords()]; // Avoid modifying DB directly
+
                         if (field === 'name') {
                             recordsToSort.sort((a, b) => {
                                 if (a.name.toLowerCase() < b.name.toLowerCase()) return order === 'asc' ? -1 : 1;
@@ -106,15 +107,27 @@ function menu() {
                                 return order === 'asc' ? dateA - dateB : dateB - dateA;
                             });
                         } else {
-                            console.log('Invalid field. Sorting aborted.');
+                            console.log('❌ Invalid field. Sorting aborted.');
                             return menu();
                         }
 
                         console.log('Sorted Records:');
-                        recordsToSort.forEach(r => console.log(`ID: ${r.id} | Name: ${r.name} | Value: ${r.value}`));
+                        recordsToSort.forEach(r =>
+                            console.log(`ID: ${r.id} | Name: ${r.name} | Value: ${r.value} | CreatedAt: ${r.createdAt}`)
+                        );
                         menu();
                     });
                 });
+                break;
+
+            case '7': // Export Data
+                exportUtils.exportToTxt();
+                menu();
+                break;
+
+            case '8': // Exit
+                console.log('👋 Exiting NodeVault...');
+                rl.close();
                 break;
 
             default:

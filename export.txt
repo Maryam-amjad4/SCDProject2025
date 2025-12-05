@@ -1,0 +1,16 @@
+===== NodeVault Export File =====
+File Name: export.txt
+Export Date: 12/5/2025, 10:37:35 AM
+Total Records: 2
+=================================
+
+ID: 1764922076512
+Name: ali
+Value: 12
+Created At: undefined
+---------------------------
+ID: 1764924993344
+Name: ahmed
+Value: 500
+Created At: undefined
+---------------------------

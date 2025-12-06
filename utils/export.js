@@ -1,38 +1,32 @@
 const fs = require('fs');
 const path = require('path');
-const db = require('../db');
+const db = require('../db'); // MongoDB database module
 
-function exportToTxt() {
-    const records = db.listRecords();
+const exportFolder = path.join(__dirname, '../exports');
 
-    const filePath = path.join(process.cwd(), 'export.txt');
+// Ensure exports folder exists
+if (!fs.existsSync(exportFolder)) {
+    fs.mkdirSync(exportFolder);
+}
 
-    const header = 
-`===== NodeVault Export File =====
-File Name: export.txt
-Export Date: ${new Date().toLocaleString()}
-Total Records: ${records.length}
-=================================
+async function exportToTxt() {
+    try {
+        const records = await db.listRecords();
+        if (records.length === 0) {
+            console.log('No records to export.');
+            return;
+        }
 
-`;
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const exportFile = path.join(exportFolder, `vault_export_${timestamp}.txt`);
 
-    let body = "";
+        const content = records.map(r => `ID: ${r.id} | Name: ${r.name} | Value: ${r.value} | CreatedAt: ${r.createdAt}`).join('\n');
 
-    if (records.length === 0) {
-        body += "No records available.\n";
-    } else {
-        records.forEach(r => {
-            body += `ID: ${r.id}\n`;
-            body += `Name: ${r.name}\n`;
-            body += `Value: ${r.value}\n`;
-            body += `Created At: ${r.createdAt}\n`;
-            body += `---------------------------\n`;
-        });
+        fs.writeFileSync(exportFile, content);
+        console.log(`📄 Data exported successfully: ${exportFile}`);
+    } catch (err) {
+        console.error('❌ Export failed:', err.message);
     }
-
-    fs.writeFileSync(filePath, header + body);
-
-    console.log(`📄 Data exported successfully to export.txt`);
 }
 
 module.exports = { exportToTxt };

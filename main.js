@@ -18,25 +18,26 @@ function menu() {
 5. Search Records
 6. Sort Records
 7. Export Data
-8. Exit
+8. View Vault Statistics
+9. Exit
 =====================
 `);
 
-    rl.question('Choose option: ', ans => {
+    rl.question('Choose option: ', async (ans) => {
         switch (ans.trim()) {
 
             case '1': // Add Record
-                rl.question('Enter name: ', name => {
-                    rl.question('Enter value: ', value => {
-                        db.addRecord({ name, value });
-                        console.log('✅ Record added successfully!');
+                rl.question('Enter name: ', async (name) => {
+                    rl.question('Enter value: ', async (value) => {
+                        const record = await db.addRecord({ name, value });
+                        console.log('✅ Record added successfully!', record);
                         menu();
                     });
                 });
                 break;
 
             case '2': // List Records
-                const records = db.listRecords();
+                const records = await db.listRecords();
                 if (records.length === 0) {
                     console.log('No records found.');
                 } else {
@@ -48,10 +49,10 @@ function menu() {
                 break;
 
             case '3': // Update Record
-                rl.question('Enter record ID to update: ', id => {
-                    rl.question('New name: ', name => {
-                        rl.question('New value: ', value => {
-                            const updated = db.updateRecord(Number(id), name, value);
+                rl.question('Enter record ID to update: ', async (id) => {
+                    rl.question('New name: ', async (name) => {
+                        rl.question('New value: ', async (value) => {
+                            const updated = await db.updateRecord(Number(id), name, value);
                             console.log(updated ? '✅ Record updated!' : '❌ Record not found.');
                             menu();
                         });
@@ -60,16 +61,17 @@ function menu() {
                 break;
 
             case '4': // Delete Record
-                rl.question('Enter record ID to delete: ', id => {
-                    const deleted = db.deleteRecord(Number(id));
+                rl.question('Enter record ID to delete: ', async (id) => {
+                    const deleted = await db.deleteRecord(Number(id));
                     console.log(deleted ? '🗑️ Record deleted!' : '❌ Record not found.');
                     menu();
                 });
                 break;
 
             case '5': // Search Records
-                rl.question('Enter search keyword: ', keyword => {
-                    const results = db.listRecords().filter(record =>
+                rl.question('Enter search keyword: ', async (keyword) => {
+                    const allRecords = await db.listRecords();
+                    const results = allRecords.filter(record =>
                         record.name.toLowerCase().includes(keyword.toLowerCase()) ||
                         record.id.toString() === keyword
                     );
@@ -87,12 +89,11 @@ function menu() {
                 break;
 
             case '6': // Sort Records
-                rl.question('Choose field to sort by (name/createdAt): ', field => {
+                rl.question('Choose field to sort by (name/createdAt): ', async (field) => {
                     field = field.trim().toLowerCase();
-                    rl.question('Choose order (asc/desc): ', order => {
+                    rl.question('Choose order (asc/desc): ', async (order) => {
                         order = order.trim().toLowerCase();
-
-                        let recordsToSort = [...db.listRecords()]; // Avoid modifying DB directly
+                        let recordsToSort = await db.listRecords();
 
                         if (field === 'name') {
                             recordsToSort.sort((a, b) => {
@@ -121,11 +122,43 @@ function menu() {
                 break;
 
             case '7': // Export Data
-                exportUtils.exportToTxt();
+                await exportUtils.exportToTxt();
                 menu();
                 break;
 
-            case '8': // Exit
+            case '8': // View Vault Statistics
+                const statsRecords = await db.listRecords();
+                if (statsRecords.length === 0) {
+                    console.log('No records to display statistics.');
+                } else {
+                    const total = statsRecords.length;
+                    const lastModified = statsRecords.reduce((max, r) => {
+                        const date = new Date(r.createdAt);
+                        return date > max ? date : max;
+                    }, new Date(0));
+
+                    const longestNameRecord = statsRecords.reduce((a, b) =>
+                        a.name.length >= b.name.length ? a : b
+                    );
+
+                    const sortedDates = statsRecords
+                        .map(r => new Date(r.createdAt))
+                        .sort((a, b) => a - b);
+
+                    console.log(`
+Vault Statistics:
+--------------------------
+Total Records: ${total}
+Last Modified: ${lastModified.toISOString()}
+Longest Name: ${longestNameRecord.name} (${longestNameRecord.name.length} characters)
+Earliest Record: ${sortedDates[0].toISOString().split('T')[0]}
+Latest Record: ${sortedDates[sortedDates.length - 1].toISOString().split('T')[0]}
+`);
+                }
+                menu();
+                break;
+
+            case '9': // Exit
                 console.log('👋 Exiting NodeVault...');
                 rl.close();
                 break;

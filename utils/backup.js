@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const fileDB = require('../db/file');
+const db = require('../db'); // MongoDB database module
 
 const backupFolder = path.join(__dirname, '../backups');
 
@@ -9,18 +9,16 @@ if (!fs.existsSync(backupFolder)) {
     fs.mkdirSync(backupFolder);
 }
 
-function createBackup() {
+async function createBackup() {
     try {
-        const data = fileDB.readDB();
+        const data = await db.listRecords();
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-
         const backupFile = path.join(backupFolder, `backup_${timestamp}.json`);
 
         fs.writeFileSync(backupFile, JSON.stringify(data, null, 2));
-
-        console.log(`Backup created successfully: ${backupFile}`);
+        console.log(`💾 Backup created: ${backupFile}`);
     } catch (err) {
-        console.error("Failed to create backup:", err.message);
+        console.error('❌ Backup failed:', err.message);
     }
 }
 

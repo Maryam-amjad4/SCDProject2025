@@ -1,41 +1,32 @@
-const { MongoClient } = require('mongodb');
 require('dotenv').config();
+const { MongoClient } = require('mongodb');
 
-const uri = process.env.MONGO_URI || 'mongodb://localhost:27017';
-const dbName = process.env.DB_NAME || 'nodevault';
+const uri = process.env.MONGODB_URI; // from .env
+const client = new MongoClient(uri);
 
 let db;
+let recordsCollection;
 
 async function connectDB() {
-    if (db) return db;
-    const client = new MongoClient(uri);
     await client.connect();
-    db = client.db(dbName);
     console.log('✅ Connected to MongoDB');
-    return db;
-}
-
-async function getCollection() {
-    const database = await connectDB();
-    return database.collection('vault');
+    db = client.db('nodevault'); // specify DB name
+    recordsCollection = db.collection('records');
 }
 
 async function addRecord(record) {
-    const col = await getCollection();
     record.createdAt = new Date();
     record.id = Date.now(); // simple unique ID
-    const result = await col.insertOne(record);
-    return result.ops ? result.ops[0] : record;
+    const result = await recordsCollection.insertOne(record);
+    return { ...record, _id: result.insertedId };
 }
 
 async function listRecords() {
-    const col = await getCollection();
-    return col.find().toArray();
+    return await recordsCollection.find().toArray();
 }
 
 async function updateRecord(id, newName, newValue) {
-    const col = await getCollection();
-    const result = await col.findOneAndUpdate(
+    const result = await recordsCollection.findOneAndUpdate(
         { id },
         { $set: { name: newName, value: newValue } },
         { returnDocument: 'after' }
@@ -44,12 +35,24 @@ async function updateRecord(id, newName, newValue) {
 }
 
 async function deleteRecord(id) {
-    const col = await getCollection();
-    const record = await col.findOne({ id });
+    const record = await recordsCollection.findOne({ id });
     if (!record) return null;
-    await col.deleteOne({ id });
+    await recordsCollection.deleteOne({ id });
     return record;
 }
 
-module.exports = { addRecord, listRecords, updateRecord, deleteRecord };
+// Optional: export a function to close the DB connection
+async function closeDB() {
+    await client.close();
+    console.log('🔒 MongoDB connection closed');
+}
+
+module.exports = {
+    connectDB,
+    addRecord,
+    listRecords,
+    updateRecord,
+    deleteRecord,
+    closeDB
+};
 
